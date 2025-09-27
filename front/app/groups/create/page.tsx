@@ -113,27 +113,7 @@ export default function CreateGroupPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-orange-100 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2">
-              <Utensils className="h-8 w-8 text-orange-600" />
-              <h1 className="text-2xl font-bold text-gray-900">밥친구</h1>
-            </Link>
-            <nav className="hidden md:flex items-center gap-6">
-              <Link href="/groups" className="text-gray-600 hover:text-orange-600 transition-colors">
-                그룹 찾기
-              </Link>
-              <Link href="/my-groups" className="text-gray-600 hover:text-orange-600 transition-colors">
-                내 그룹
-              </Link>
-              <Button variant="outline" size="sm">
-                로그인
-              </Button>
-            </nav>
-          </div>
-        </div>
-      </header>
+      
 
       <div className="container mx-auto px-4 py-8 max-w-2xl">
         <div className="mb-8">
