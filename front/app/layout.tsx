@@ -12,9 +12,9 @@ const geistSans = GeistSans.variable;
 const geistMono = GeistMono.variable;
 
 export const metadata: Metadata = {
-  title: "밥친구",
-  description: "혼자 먹기 아쉬운 메뉴, 함께 먹어요!",
-};
+  title: "BabFriend",
+  description: "Don't Eat Alone Anymore!",
+}
 
 export default function RootLayout({
   children,
@@ -23,6 +23,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko" className={`${geistSans} ${geistMono} antialiased`}>
+      <head>
+        <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests"></meta>
+      </head>
       <body>
         <Script
           src={`https://openapi.map.naver.com/openapi/v3/maps.js?ncpClientId=${process.env.NEXT_PUBLIC_NAVER_CLIENT_ID || "demo"}`}

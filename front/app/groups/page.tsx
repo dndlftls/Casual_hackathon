@@ -1,16 +1,38 @@
 "use client";
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { MapPin, Users, Clock, Utensils, Plus, Search } from "lucide-react"
 import Link from "next/link"
-import { groupsStore, MealGroup } from "@/lib/groups-store"
 
 export default function GroupsPage() {
-  // groups-store에서 그룹 데이터 가져오기
-  const groups = groupsStore.getAllGroups()
+  const [groups, setGroups] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  // 백엔드 API에서 그룹 데이터 가져오기
+  useEffect(() => {
+    const fetchGroups = async () => {
+      try {
+        const response = await fetch('/api/groups')
+        if (response.ok) {
+          const data = await response.json()
+          setGroups(data.groups || [])
+        } else {
+          console.error('그룹 데이터를 가져오는 중 오류가 발생했습니다')
+          setGroups([])
+        }
+      } catch (error) {
+        console.error('그룹 데이터를 가져오는 중 오류가 발생했습니다:', error)
+        setGroups([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchGroups()
+  }, [])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
@@ -25,7 +47,12 @@ export default function GroupsPage() {
           </Link>
         </div>
 
-        {groups.length > 0 ? (
+        {isLoading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto mb-4"></div>
+            <p className="text-gray-500">그룹 목록을 불러오는 중...</p>
+          </div>
+        ) : groups.length > 0 ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {groups.map((group) => (
               <Card key={group.id} className="hover:shadow-lg transition-shadow border-orange-100">
@@ -33,29 +60,33 @@ export default function GroupsPage() {
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-xl text-gray-900">{group.menu}</CardTitle>
                     <Badge variant="secondary" className="bg-orange-100 text-orange-700">
-                      {group.currentMembers}/{group.maxMembers}명
+                      {group.current_members}/{group.max_members}명
                     </Badge>
                   </div>
                   <CardDescription className="text-gray-600">
                     <div className="flex items-center gap-4 mt-2">
                       <span className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
-                        {group.time}
+                        {group.meeting_time}
                       </span>
                       <span className="flex items-center gap-1">
                         <MapPin className="h-4 w-4" />
-                        {group.location} ({group.distance})
+                        {group.location}
                       </span>
                     </div>
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2 mb-4">
-                    {group.tags.map((tag: string) => (
+                    {group.tags && group.tags.length > 0 ? group.tags.map((tag: string) => (
                       <Badge key={tag} variant="outline" className="text-xs">
                         {tag}
                       </Badge>
-                    ))}
+                    )) : (
+                      <Badge variant="outline" className="text-xs">
+                        일반
+                      </Badge>
+                    )}
                   </div>
                   <div className="flex gap-2">
                     <Link href={`/groups/${group.id}`} className="flex-1">
