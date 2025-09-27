@@ -152,21 +152,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Map Section */}
-      <section className="py-16 px-4 bg-white">
-        <div className="container mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">지도에서 그룹 위치 확인</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              현재 모집 중인 그룹들의 위치를 지도에서 한눈에 확인해보세요
-            </p>
-          </div>
-          {/* NaverMap 컴포넌트가 준비될 때까지 임시 UI */}
-          <div className="max-w-6xl mx-auto h-96 bg-gray-200 rounded-lg flex items-center justify-center">
-            <p className="text-gray-500">지도 표시 영역</p>
-          </div>
-        </div>
-      </section>
 
       {/* ... Featured Groups, Map, Features, Footer 등 ... */}
     </div>
