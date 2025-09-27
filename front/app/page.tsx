@@ -34,9 +34,11 @@ export default function HomePage() {
                 내 그룹
               </Link>
               <NotificationCenter />
-              <Button variant="outline" size="sm">
-                로그인
-              </Button>
+              <Link href="/login">
+                <Button variant="outline" size="sm">
+                  로그인
+                </Button>
+              </Link>
             </nav>
           </div>
         </div>
