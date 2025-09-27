@@ -5,6 +5,7 @@ import { GeistMono } from "geist/font/mono"
 import Script from "next/script"
 import { Suspense } from "react"
 import "./globals.css"
+import { AuthProvider } from "@/context/AuthContext";
 
 const geistSans = GeistSans.variable
 const geistMono = GeistMono.variable
@@ -27,7 +28,9 @@ export default function RootLayout({
           src={`https://openapi.map.naver.com/openapi/v3/maps.js?ncpClientId=${process.env.NEXT_PUBLIC_NAVER_CLIENT_ID || "demo"}`}
           strategy="beforeInteractive"
         />
-        <Suspense fallback={null}>{children}</Suspense>
+        <AuthProvider>
+          <Suspense fallback={null}>{children}</Suspense>
+        </AuthProvider>
       </body>
     </html>
   )
