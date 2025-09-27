@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import axios from "axios" // 1. axios를 import 합니다.
+import Link from "next/link";
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -99,6 +100,14 @@ export function LoginForm() {
             {isLoading ? "로그인 중..." : "로그인하기"}
           </Button>
         </form>
+        
+        <div className="mt-4 text-center text-sm">
+          계정이 없으신가요?{" "}
+          <Link href="/register" className="underline font-semibold hover:text-orange-600">
+            회원가입
+          </Link>
+        </div>
+        
       </CardContent>
     </Card>
   );

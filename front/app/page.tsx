@@ -40,7 +40,7 @@ export default function HomePage() {
               {/* 3. 로그인 상태에 따라 UI를 변경하는 핵심 로직 */}
               {user ? (
                 // 로그인 상태일 때
-                <span className="font-semibold text-gray-800">{user.nickname}님</span>
+                 <span className="font-semibold text-gray-800">{user.nickname}님</span>
               ) : (
                 // 로그아웃 상태일 때
                 <Link href="/login">
