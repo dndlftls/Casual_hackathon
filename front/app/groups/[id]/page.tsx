@@ -39,7 +39,7 @@ export default function GroupDetailPage() {
     const fetchGroup = async () => {
       try {
         setGroupLoading(true)
-        const response = await fetch(`http://babfriend.kro.kr:3001/api/groups/${groupId}`)
+        const response = await fetch(`/api/groups/${groupId}`)
         if (response.ok) {
           const data = await response.json()
           setGroup(data.group)
