@@ -538,6 +538,43 @@ Authorization: Bearer <token>
 }
 ```
 
+### 10. 그룹 채팅 메시지 작성
+**POST** `/groups/:id/messages`
+
+- 설명: 특정 그룹에 채팅 메시지를 작성합니다.
+- 인증: 필요 (Authorization: Bearer <token>)
+- 권한: 그룹의 active 멤버만 가능
+- 요청 본문:
+```json
+{ "message": "안녕하세요!" }
+```
+- 응답 (201):
+```json
+{
+  "message": "메시지가 저장되었습니다.",
+  "data": { "id": 1, "group_id": 1, "user_id": 2, "message": "안녕하세요!" }
+}
+```
+
+### 11. 그룹 채팅 메시지 조회
+**GET** `/groups/:id/messages?limit=50&offset=0&since_id=123`
+
+- 설명: 특정 그룹의 메시지 목록을 조회합니다.
+- 인증: 필요 (Authorization: Bearer <token>)
+- 권한: 그룹의 active 멤버만 가능
+- 쿼리:
+  - `limit` 최대 100, 기본 50
+  - `offset` 기본 0
+  - `since_id` 지정 시 해당 ID 초과만 조회
+- 응답 (200):
+```json
+{
+  "messages": [
+    { "id": 101, "group_id": 1, "user_id": 2, "nickname": "사용자1", "message": "안녕하세요!", "created_at": "2025-09-27 05:44:07" }
+  ]
+}
+```
+
 ## 사용 예시
 
 ### JavaScript (fetch)
@@ -708,6 +745,15 @@ curl -X GET http://localhost:3001/api/groups/my-groups \
 | user_id | INTEGER | NOT NULL, FOREIGN KEY | 사용자 ID |
 | joined_at | DATETIME | DEFAULT CURRENT_TIMESTAMP | 참여일시 |
 | status | TEXT | DEFAULT 'active' | 멤버 상태 |
+
+### group_messages 테이블
+| 컬럼명 | 타입 | 제약조건 | 설명 |
+|--------|------|----------|------|
+| id | INTEGER | PRIMARY KEY, AUTOINCREMENT | 메시지 ID |
+| group_id | INTEGER | NOT NULL, FOREIGN KEY | 그룹 ID |
+| user_id | INTEGER | NOT NULL, FOREIGN KEY | 사용자 ID |
+| message | TEXT | NOT NULL | 메시지 본문 |
+| created_at | DATETIME | DEFAULT CURRENT_TIMESTAMP | 작성일시 |
 
 ## 보안 고려사항
 
