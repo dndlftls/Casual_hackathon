@@ -64,7 +64,7 @@ export default function GroupDetailPage() {
     
     try {
       setIsLoading(true)
-      const response = await fetch(`http://babfriend.kro.kr:3001/api/groups/${groupId}/messages?limit=50&offset=0`, {
+      const response = await fetch(`/api/groups/${groupId}/messages?limit=50&offset=0`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('babchingu_token') || ''}`
         }
@@ -86,7 +86,7 @@ export default function GroupDetailPage() {
     if (!newMessage.trim() || !hasJoined) return
 
     try {
-      const response = await fetch(`http://babfriend.kro.kr:3001/api/groups/${groupId}/messages`, {
+      const response = await fetch(`/api/groups/${groupId}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
