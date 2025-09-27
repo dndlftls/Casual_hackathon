@@ -17,7 +17,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 
 // 백엔드 API의 기본 URL을 정의합니다.
-const API_URL = "http://babfriend.kro.kr:3001/api";
+const API_URL = "/api";
 
 export function LoginForm() {
   const router = useRouter();

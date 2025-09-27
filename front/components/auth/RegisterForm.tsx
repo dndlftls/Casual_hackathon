@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/select"
 import { useAuth } from "@/context/AuthContext"
 
-const API_URL = "http://babfriend.kro.kr:3001/api";
+const API_URL = "/api";
 
 // API 문서에 기반한 Zod 유효성 검사 스키마
 const formSchema = z.object({
