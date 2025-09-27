@@ -7,14 +7,35 @@ import { Badge } from "@/components/ui/badge"
 import { MapPin, Users, Clock, Utensils, Plus, Search, Zap } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/context/AuthContext" // 1. useAuth 훅 import
-import { groupsStore } from "@/lib/groups-store"
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState<"create" | "join">("join")
   const { user } = useAuth(); // 2. useAuth 훅을 호출하여 user 정보 가져오기
+  const [featuredGroups, setFeaturedGroups] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  // groups-store에서 그룹 데이터 가져오기
-  const featuredGroups = groupsStore.getAllGroups()
+  // 백엔드 API에서 그룹 데이터 가져오기
+  React.useEffect(() => {
+    const fetchGroups = async () => {
+      try {
+        const response = await fetch('http://babfriend.kro.kr:3001/api/groups')
+        if (response.ok) {
+          const data = await response.json()
+          setFeaturedGroups(data.groups || [])
+        } else {
+          console.error('그룹 데이터를 가져오는 중 오류가 발생했습니다')
+          setFeaturedGroups([])
+        }
+      } catch (error) {
+        console.error('그룹 데이터를 가져오는 중 오류가 발생했습니다:', error)
+        setFeaturedGroups([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchGroups()
+  }, [])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
@@ -109,44 +130,59 @@ export default function HomePage() {
       <section className="py-16 px-4 bg-white/50">
         <div className="container mx-auto">
           <h3 className="text-3xl font-bold text-center mb-12 text-gray-900">지금 모집 중인 그룹</h3>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-            {featuredGroups.map((group) => (
+          {isLoading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto mb-4"></div>
+              <p className="text-gray-500">그룹을 불러오는 중...</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+              {featuredGroups && featuredGroups.length > 0 ? featuredGroups.map((group) => (
               <Card key={group.id} className="hover:shadow-lg transition-shadow border-orange-100">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-xl text-gray-900">{group.menu}</CardTitle>
                     <Badge variant="secondary" className="bg-orange-100 text-orange-700">
-                      {group.currentMembers}/{group.maxMembers}명
+                      {group.current_members}/{group.max_members}명
                     </Badge>
                   </div>
                   <CardDescription className="text-gray-600">
                     <div className="flex items-center gap-4 mt-2">
                       <span className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
-                        {group.time}
+                        {group.meeting_time}
                       </span>
                       <span className="flex items-center gap-1">
                         <MapPin className="h-4 w-4" />
-                        {group.location} ({group.distance})
+                        {group.location}
                       </span>
                     </div>
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2 mb-4">
-                    {group.tags.map((tag) => (
+                    {group.tags && group.tags.length > 0 ? group.tags.map((tag: string) => (
                       <Badge key={tag} variant="outline" className="text-xs">
                         {tag}
                       </Badge>
-                    ))}
+                    )) : (
+                      <Badge variant="outline" className="text-xs">
+                        일반
+                      </Badge>
+                    )}
                   </div>
                   <Link href={`/groups/${group.id}`}>
                     <Button className="w-full bg-orange-600 hover:bg-orange-700">참여하기</Button>
                   </Link>
                 </CardContent>
               </Card>
-            ))}
-          </div>
+              )) : (
+                <div className="col-span-full text-center py-12">
+                  <p className="text-gray-500">현재 모집 중인 그룹이 없습니다.</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </section>
 
