@@ -15,7 +15,7 @@ export default function GroupsPage() {
   useEffect(() => {
     const fetchGroups = async () => {
       try {
-        const response = await fetch('http://babfriend.kro.kr:3001/api/groups')
+        const response = await fetch('/api/groups')
         if (response.ok) {
           const data = await response.json()
           setGroups(data.groups || [])
