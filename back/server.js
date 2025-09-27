@@ -416,12 +416,32 @@ app.get('/api/groups/:id(\\d+)', (req, res) => {
           return res.status(500).json({ error: '그룹 멤버 조회 중 오류가 발생했습니다.' });
         }
 
-        res.json({ 
-          group: {
-            ...group,
-            members
-          }
-        });
+        // 생성자가 멤버 목록에 없다면 생성자 정보 추가 (이전 데이터 호환)
+        const hasCreator = (members || []).some((m) => m.id === group.creator_id);
+        const finalizeResponse = (finalMembers) => {
+          res.json({ 
+            group: {
+              ...group,
+              members: finalMembers
+            }
+          });
+        };
+
+        if (!hasCreator) {
+          db.get('SELECT id, nickname, age, gender, location FROM users WHERE id = ?', [group.creator_id], (uErr, creator) => {
+            if (uErr || !creator) {
+              // 사용자 조회 실패 시 멤버 목록 그대로 반환
+              return finalizeResponse(members || []);
+            }
+            const merged = [
+              ...(members || []),
+              { id: creator.id, nickname: creator.nickname, age: creator.age, gender: creator.gender, location: creator.location, joined_at: group.created_at }
+            ];
+            finalizeResponse(merged);
+          });
+        } else {
+          finalizeResponse(members || []);
+        }
       });
     });
   } catch (error) {
@@ -737,12 +757,8 @@ app.post('/api/groups/:id(\\d+)/messages', authenticateToken, [
       if (err) return res.status(500).json({ error: '그룹 조회 중 오류가 발생했습니다.' });
       if (!group) return res.status(404).json({ error: '그룹을 찾을 수 없거나 비활성 상태입니다.' });
 
-      // 멤버 권한 확인(참여자만 가능)
-      db.get('SELECT 1 FROM group_members WHERE group_id = ? AND user_id = ? AND status = "active"', [groupId, userId], (err, member) => {
-        if (err) return res.status(500).json({ error: '권한 확인 중 오류가 발생했습니다.' });
-        if (!member) return res.status(403).json({ error: '그룹 멤버만 메시지를 보낼 수 있습니다.' });
-
-        // 저장
+      const allowAsCreator = userId === group.creator_id;
+      const proceedInsert = () => {
         db.run('INSERT INTO group_messages (group_id, user_id, message) VALUES (?, ?, ?)', [groupId, userId, message], function(insertErr) {
           if (insertErr) return res.status(500).json({ error: '메시지 저장 중 오류가 발생했습니다.' });
           return res.status(201).json({
@@ -750,6 +766,17 @@ app.post('/api/groups/:id(\\d+)/messages', authenticateToken, [
             data: { id: this.lastID, group_id: Number(groupId), user_id: userId, message }
           });
         });
+      };
+
+      if (allowAsCreator) {
+        return proceedInsert();
+      }
+
+      // 멤버 권한 확인(참여자만 가능)
+      db.get('SELECT 1 FROM group_members WHERE group_id = ? AND user_id = ? AND status = "active"', [groupId, userId], (err2, member) => {
+        if (err2) return res.status(500).json({ error: '권한 확인 중 오류가 발생했습니다.' });
+        if (!member) return res.status(403).json({ error: '그룹 멤버만 메시지를 보낼 수 있습니다.' });
+        proceedInsert();
       });
     });
   } catch (error) {
@@ -771,11 +798,8 @@ app.get('/api/groups/:id(\\d+)/messages', authenticateToken, (req, res) => {
       if (err) return res.status(500).json({ error: '그룹 조회 중 오류가 발생했습니다.' });
       if (!group) return res.status(404).json({ error: '그룹을 찾을 수 없거나 비활성 상태입니다.' });
 
-      // 멤버 권한 확인(참여자만 조회 가능)
-      db.get('SELECT 1 FROM group_members WHERE group_id = ? AND user_id = ? AND status = "active"', [groupId, userId], (err, member) => {
-        if (err) return res.status(500).json({ error: '권한 확인 중 오류가 발생했습니다.' });
-        if (!member) return res.status(403).json({ error: '그룹 멤버만 메시지를 조회할 수 있습니다.' });
-
+      const allowAsCreator = userId === group.creator_id;
+      const proceedList = () => {
         let sql = `
           SELECT gm.id, gm.group_id, gm.user_id, u.nickname, gm.message, gm.created_at
           FROM group_messages gm
@@ -796,6 +820,17 @@ app.get('/api/groups/:id(\\d+)/messages', authenticateToken, (req, res) => {
           if (listErr) return res.status(500).json({ error: '메시지 조회 중 오류가 발생했습니다.' });
           return res.json({ messages: rows || [] });
         });
+      };
+
+      if (allowAsCreator) {
+        return proceedList();
+      }
+
+      // 멤버 권한 확인(참여자만 조회 가능)
+      db.get('SELECT 1 FROM group_members WHERE group_id = ? AND user_id = ? AND status = "active"', [groupId, userId], (err2, member) => {
+        if (err2) return res.status(500).json({ error: '권한 확인 중 오류가 발생했습니다.' });
+        if (!member) return res.status(403).json({ error: '그룹 멤버만 메시지를 조회할 수 있습니다.' });
+        proceedList();
       });
     });
   } catch (error) {
