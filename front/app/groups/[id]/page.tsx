@@ -34,6 +34,8 @@ export default function GroupDetailPage() {
   const [group, setGroup] = useState<any>(null)
   const [groupLoading, setGroupLoading] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const lastIdRef = useRef<number>(0)
+  const chatContainerRef = useRef<HTMLDivElement>(null)
 
   const groupId = Number.parseInt(params.id as string)
 
@@ -82,26 +84,41 @@ export default function GroupDetailPage() {
     verifyAndSet()
   }, [group, groupId])
 
-  // 채팅 메시지 가져오기
-  const fetchMessages = async () => {
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
+
+  // 채팅 메시지 가져오기 (initial=true: 전체 로드, false: 증분 로드)
+  const fetchMessages = async (initial: boolean) => {
     if (!hasJoined || !token) return
-    
     try {
-      setIsLoading(true)
-      const response = await fetch(`/api/groups/${groupId}/messages?limit=50&offset=0`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      // 초기 로드에서만 로딩 상태 표시
+      if (initial) setIsLoading(true)
+
+      const query = initial || !lastIdRef.current
+        ? `?limit=50&offset=0`
+        : `?since_id=${lastIdRef.current}&limit=50`
+      const response = await fetch(`/api/groups/${groupId}/messages${query}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
       })
-      
       if (response.ok) {
         const data = await response.json()
-        setMessages(data.messages || [])
+        const fetched: ChatMessage[] = data.messages || []
+        if (initial || !lastIdRef.current) {
+          setMessages(fetched)
+        } else if (fetched.length > 0) {
+          setMessages(prev => [...prev, ...fetched])
+        }
+        if (fetched.length > 0) {
+          lastIdRef.current = fetched[fetched.length - 1].id
+          // 새 메시지가 도착하면 항상 하단으로 스크롤
+          setTimeout(() => scrollToBottom(), 0)
+        }
       }
     } catch (error) {
       console.error('메시지 가져오기 실패:', error)
     } finally {
-      setIsLoading(false)
+      if (initial) setIsLoading(false)
     }
   }
 
@@ -121,27 +138,22 @@ export default function GroupDetailPage() {
 
       if (response.ok) {
         setNewMessage("")
-        fetchMessages() // 메시지 목록 새로고침
+        // 전송자일 때는 바로 하단으로 스크롤 유지되도록 증분 로드
+        fetchMessages(false)
       }
     } catch (error) {
       console.error('메시지 전송 실패:', error)
     }
   }
 
-  // 메시지 목록 자동 스크롤
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
-
+  // 참여 시 폴링으로 최신 메시지 반영 (로딩 UI 없이 자연스럽게 추가)
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
-
-  useEffect(() => {
-    if (hasJoined) {
-      fetchMessages()
-    }
-  }, [hasJoined, groupId])
+    if (!hasJoined || !token) return
+    lastIdRef.current = 0
+    fetchMessages(true)
+    const timer = setInterval(() => fetchMessages(false), 3000)
+    return () => clearInterval(timer)
+  }, [hasJoined, token, groupId])
 
   const handleJoinGroup = async () => {
     if (!token) { router.push('/login'); return }
@@ -153,7 +165,7 @@ export default function GroupDetailPage() {
         // 그룹 상세/멤버/카운트 갱신
         const g = await fetch(`/api/groups/${groupId}`)
         if (g.ok) setGroup(await g.json().then(j=>j.group))
-        fetchMessages()
+        fetchMessages(true) // 참여 시 최신 메시지 로드
       }
     } catch (e) {}
   }
@@ -337,10 +349,8 @@ export default function GroupDetailPage() {
                 ) : hasJoined ? (
                   <div className="space-y-4">
                     {/* 메시지 목록 */}
-                    <div className="h-64 overflow-y-auto border rounded-lg p-3 bg-gray-50">
-                      {isLoading ? (
-                        <div className="text-center text-gray-500 py-4">메시지를 불러오는 중...</div>
-                      ) : messages.length > 0 ? (
+                    <div ref={chatContainerRef} className="h-64 overflow-y-auto border rounded-lg p-3 bg-gray-50">
+                      {messages.length > 0 ? (
                         <div className="space-y-3">
                           {messages.map((message) => (
                             <div key={message.id} className="flex items-start gap-2">
