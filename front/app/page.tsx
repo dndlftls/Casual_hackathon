@@ -7,42 +7,14 @@ import { Badge } from "@/components/ui/badge"
 import { MapPin, Users, Clock, Utensils, Plus, Search, Zap } from "lucide-react"
 import Link from "next/link"
 import NotificationCenter from "@/components/notification-center"
+import NaverMap from "@/components/naver-map"
+import { groupsStore } from "@/lib/groups-store"
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState<"create" | "join">("join")
 
-  const featuredGroups = [
-    {
-      id: 1,
-      menu: "삼겹살",
-      time: "오늘 7:00 PM",
-      location: "강남역",
-      distance: "0.5km",
-      currentMembers: 2,
-      maxMembers: 4,
-      tags: ["고기", "회식"],
-    },
-    {
-      id: 2,
-      menu: "치킨",
-      time: "오늘 8:30 PM",
-      location: "홍대입구",
-      distance: "1.2km",
-      currentMembers: 1,
-      maxMembers: 3,
-      tags: ["치킨", "맥주"],
-    },
-    {
-      id: 3,
-      menu: "라면",
-      time: "내일 12:00 PM",
-      location: "신촌",
-      distance: "2.1km",
-      currentMembers: 3,
-      maxMembers: 4,
-      tags: ["점심", "간단"],
-    },
-  ]
+  // 실제 그룹 데이터 가져오기
+  const featuredGroups = groupsStore.getAllGroups()
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
@@ -162,6 +134,25 @@ export default function HomePage() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Map Section */}
+      <section className="py-16 px-4 bg-white">
+        <div className="container mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">지도에서 그룹 위치 확인</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              현재 모집 중인 그룹들의 위치를 지도에서 한눈에 확인해보세요
+            </p>
+          </div>
+          <div className="max-w-6xl mx-auto">
+            <NaverMap 
+              groups={featuredGroups} 
+              center={{ lat: 37.5665, lng: 126.978 }} 
+              zoom={11} 
+            />
           </div>
         </div>
       </section>
