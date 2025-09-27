@@ -41,37 +41,44 @@ export default function CreateGroupPage() {
     setIsCreating(true)
     
     try {
-      // 그룹 데이터 준비
-      const groupData = {
-        menu: formData.menu,
-        time: `${formData.date} ${formData.time}`,
-        location: formData.location,
-        distance: "0.5km", // 실제로는 현재 위치와의 거리 계산
-        maxMembers: Number.parseInt(formData.maxMembers),
-        tags: formData.tags,
-        description: formData.description,
-        createdBy: "현재 사용자", // 실제로는 로그인한 사용자 정보
-        mealType: formData.tags.includes("점심") ? "점심" : "저녁",
-        priceRange: "1-3만원", // 실제로는 메뉴에 따라 계산
-        lat: formData.lat,
-        lng: formData.lng,
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null
+      if (!token) {
+        alert("로그인이 필요합니다. 먼저 로그인해주세요.")
+        router.push("/login")
+        return
       }
-      
-      // 그룹 생성
-      const newGroup = groupsStore.addGroup(groupData)
-      
-      console.log("그룹이 성공적으로 생성되었습니다:", newGroup)
-      
-      // API 호출 시뮬레이션
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // 성공 메시지 표시
-      alert(`"${newGroup.menu}" 그룹이 성공적으로 생성되었습니다!`)
-      
-      // 성공 시 그룹 목록으로 이동
-      router.push("/groups")
+
+      const meetingTime = `${formData.date} ${formData.time}:00`
+      const payload = {
+        title: `${formData.menu} 모임`,
+        menu: formData.menu,
+        location: formData.location,
+        meeting_time: meetingTime,
+        max_members: Number.parseInt(formData.maxMembers),
+        description: formData.description,
+      }
+
+      const response = await fetch('/api/groups', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err.error || '그룹 생성에 실패했습니다.')
+      }
+
+      const data = await response.json()
+      const created = data.group
+      alert(`"${created.title || created.menu}" 그룹이 성공적으로 생성되었습니다!`)
+      router.push(`/groups/${created.id}`)
     } catch (error) {
       console.error("그룹 생성 중 오류가 발생했습니다:", error)
+      alert((error as Error).message || "그룹 생성 중 오류가 발생했습니다.")
     } finally {
       setIsCreating(false)
     }

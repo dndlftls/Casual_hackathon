@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MapPin, Users, Clock, Utensils, Plus, Calendar, Settings } from "lucide-react"
 import Link from "next/link"
+import LoginRequired from "@/components/auth/LoginRequired"
 
 interface MyGroup {
   id: number
@@ -20,42 +21,65 @@ interface MyGroup {
 }
 
 export default function MyGroupsPage() {
-  const [myGroups] = useState<MyGroup[]>([
-    {
-      id: 1,
-      menu: "삼겹살",
-      time: "오늘 7:00 PM",
-      location: "강남역",
-      currentMembers: 3,
-      maxMembers: 4,
-      status: "upcoming",
-      role: "member",
-    },
-    {
-      id: 2,
-      menu: "피자",
-      time: "내일 6:00 PM",
-      location: "건대입구",
-      currentMembers: 2,
-      maxMembers: 4,
-      status: "created",
-      role: "creator",
-    },
-    {
-      id: 3,
-      menu: "치킨",
-      time: "어제 8:30 PM",
-      location: "홍대입구",
-      currentMembers: 3,
-      maxMembers: 3,
-      status: "completed",
-      role: "member",
-    },
-  ])
+  const [tokenChecked, setTokenChecked] = useState(false)
+  const [token, setToken] = useState<string | null>(null)
+  const [myJoined, setMyJoined] = useState<any[]>([])
+  const [myCreated, setMyCreated] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const upcomingGroups = myGroups.filter((group) => group.status === "upcoming")
-  const createdGroups = myGroups.filter((group) => group.status === "created")
-  const completedGroups = myGroups.filter((group) => group.status === "completed")
+  useEffect(() => {
+    const t = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+    setToken(t)
+    setTokenChecked(true)
+    if (!t) return
+    ;(async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+        const headers = { 'Authorization': `Bearer ${t}` }
+        const [joinedRes, createdRes] = await Promise.all([
+          fetch('/api/groups/my-groups', { headers }),
+          fetch('/api/groups/my-created', { headers }),
+        ])
+        if (!joinedRes.ok || !createdRes.ok) {
+          const j = await joinedRes.json().catch(() => ({}))
+          const c = await createdRes.json().catch(() => ({}))
+          throw new Error(j.error || c.error || '그룹 조회 중 오류가 발생했습니다.')
+        }
+        const joined = await joinedRes.json()
+        const created = await createdRes.json()
+        setMyJoined(joined.groups || [])
+        setMyCreated(created.groups || [])
+      } catch (e:any) {
+        setError(e.message || '오류가 발생했습니다.')
+      } finally {
+        setIsLoading(false)
+      }
+    })()
+  }, [])
+
+  if (tokenChecked && !token) {
+    return <LoginRequired />
+  }
+
+  const normalize = (g:any, role:'member'|'creator') => ({
+    id: g.id,
+    menu: g.menu,
+    time: g.meeting_time,
+    location: g.location,
+    currentMembers: g.current_members,
+    maxMembers: g.max_members,
+    status: 'upcoming' as const,
+    role,
+  })
+
+  const upcomingGroups: MyGroup[] = [
+    ...(myJoined || []).map((g:any) => normalize(g,'member')),
+    ...(myCreated || []).map((g:any) => normalize(g,'creator')),
+  ]
+  const createdGroups: MyGroup[] = (myCreated || []).map((g:any) => normalize(g,'creator'))
+  const completedGroups: MyGroup[] = []
 
   const GroupCard = ({ group }: { group: MyGroup }) => (
     <Card className="hover:shadow-lg transition-shadow border-orange-100">
@@ -145,7 +169,9 @@ export default function MyGroupsPage() {
           </TabsList>
 
           <TabsContent value="upcoming" className="space-y-4">
-            {upcomingGroups.length > 0 ? (
+            {isLoading ? (
+              <div className="text-center py-12 text-gray-500">불러오는 중...</div>
+            ) : upcomingGroups.length > 0 ? (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {upcomingGroups.map((group) => (
                   <GroupCard key={group.id} group={group} />

@@ -82,7 +82,7 @@ async function testGroupsAPI() {
     try {
       const groupData = {
         title: '삼겹살 먹으러 가요!',
-        menu: '삼겹살',
+        menu: '율천회관',
         location: '강남역',
         meeting_time: '2024-01-15 19:00:00',
         max_members: 4,
@@ -193,8 +193,8 @@ async function testGroupsAPI() {
         console.log('수정할 그룹 ID:', groupId);
         
         const updateData = {
-          title: '수정된 그룹 제목',
-          description: '수정된 설명입니다.'
+          title: '수정이가 누구야',
+          description: '수정이가 누구냐고'
         };
         
         const updateResponse = await axios.put(`${BASE_URL}/groups/${groupId}`, updateData, {
