@@ -91,11 +91,35 @@ const createGroupMembersTable = () => {
   });
 };
 
+// 그룹 메시지 테이블 생성
+const createGroupMessagesTable = () => {
+  const sql = `
+    CREATE TABLE IF NOT EXISTS group_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      group_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      message TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (group_id) REFERENCES groups (id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    )
+  `;
+
+  db.run(sql, (err) => {
+    if (err) {
+      console.error('그룹 메시지 테이블 생성 오류:', err.message);
+    } else {
+      console.log('그룹 메시지 테이블이 생성되었습니다.');
+    }
+  });
+};
+
 // 데이터베이스 초기화
 const initDatabase = () => {
   createUsersTable();
   createGroupsTable();
   createGroupMembersTable();
+  createGroupMessagesTable();
 };
 
 module.exports = {

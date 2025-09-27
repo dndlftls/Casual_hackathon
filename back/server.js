@@ -7,16 +7,18 @@ const { db, initDatabase } = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const host = 'localhost';
+const HOST= 'babfriend.kro.kr';
 const JWT_SECRET = process.env.JWT_SECRET || 'babchingu_secret_key_2024';
 
 // CORS 설정 (외부 프론트엔드용)
 const corsOptions = {
-  origin: true, // 요청 Origin을 그대로 반영 (Credentials 사용 시 자동으로 Origin 에코)
+  // 모든 Origin 허용(실제 요청 Origin을 그대로 반영)
+  origin: (origin, callback) => callback(null, true),
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  // allowedHeaders를 지정하지 않아 브라우저의 Access-Control-Request-Headers를 그대로 반영
   optionsSuccessStatus: 204,
+  preflightContinue: false,
 };
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
@@ -714,10 +716,98 @@ app.delete('/api/groups/:id(\\d+)', authenticateToken, (req, res) => {
   }
 });
 
-// 서버 시작
+// ==================== 그룹 채팅 API ====================
+
+// 그룹 메시지 작성
+app.post('/api/groups/:id(\\d+)/messages', authenticateToken, [
+  body('message').isString().isLength({ min: 1, max: 2000 }).withMessage('메시지는 1~2000자 사이여야 합니다.'),
+], (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: '입력값이 올바르지 않습니다.', details: errors.array() });
+    }
+
+    const groupId = req.params.id;
+    const userId = req.user.id;
+    const { message } = req.body;
+
+    // 그룹 존재/상태 확인
+    db.get('SELECT * FROM groups WHERE id = ? AND status = "active"', [groupId], (err, group) => {
+      if (err) return res.status(500).json({ error: '그룹 조회 중 오류가 발생했습니다.' });
+      if (!group) return res.status(404).json({ error: '그룹을 찾을 수 없거나 비활성 상태입니다.' });
+
+      // 멤버 권한 확인(참여자만 가능)
+      db.get('SELECT 1 FROM group_members WHERE group_id = ? AND user_id = ? AND status = "active"', [groupId, userId], (err, member) => {
+        if (err) return res.status(500).json({ error: '권한 확인 중 오류가 발생했습니다.' });
+        if (!member) return res.status(403).json({ error: '그룹 멤버만 메시지를 보낼 수 있습니다.' });
+
+        // 저장
+        db.run('INSERT INTO group_messages (group_id, user_id, message) VALUES (?, ?, ?)', [groupId, userId, message], function(insertErr) {
+          if (insertErr) return res.status(500).json({ error: '메시지 저장 중 오류가 발생했습니다.' });
+          return res.status(201).json({
+            message: '메시지가 저장되었습니다.',
+            data: { id: this.lastID, group_id: Number(groupId), user_id: userId, message }
+          });
+        });
+      });
+    });
+  } catch (error) {
+    res.status(500).json({ error: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 그룹 메시지 조회 (페이지네이션: limit/offset 또는 since_id)
+app.get('/api/groups/:id(\\d+)/messages', authenticateToken, (req, res) => {
+  try {
+    const groupId = req.params.id;
+    const userId = req.user.id;
+    const limit = Math.min(parseInt(req.query.limit || '50', 10), 100);
+    const sinceId = req.query.since_id ? parseInt(req.query.since_id, 10) : null;
+    const offset = req.query.offset ? parseInt(req.query.offset, 10) : 0;
+
+    // 그룹 존재/상태 확인
+    db.get('SELECT * FROM groups WHERE id = ? AND status = "active"', [groupId], (err, group) => {
+      if (err) return res.status(500).json({ error: '그룹 조회 중 오류가 발생했습니다.' });
+      if (!group) return res.status(404).json({ error: '그룹을 찾을 수 없거나 비활성 상태입니다.' });
+
+      // 멤버 권한 확인(참여자만 조회 가능)
+      db.get('SELECT 1 FROM group_members WHERE group_id = ? AND user_id = ? AND status = "active"', [groupId, userId], (err, member) => {
+        if (err) return res.status(500).json({ error: '권한 확인 중 오류가 발생했습니다.' });
+        if (!member) return res.status(403).json({ error: '그룹 멤버만 메시지를 조회할 수 있습니다.' });
+
+        let sql = `
+          SELECT gm.id, gm.group_id, gm.user_id, u.nickname, gm.message, gm.created_at
+          FROM group_messages gm
+          JOIN users u ON u.id = gm.user_id
+          WHERE gm.group_id = ?
+        `;
+        const params = [groupId];
+
+        if (sinceId) {
+          sql += ' AND gm.id > ?';
+          params.push(sinceId);
+        }
+
+        sql += ' ORDER BY gm.id ASC LIMIT ? OFFSET ?';
+        params.push(limit, offset);
+
+        db.all(sql, params, (listErr, rows) => {
+          if (listErr) return res.status(500).json({ error: '메시지 조회 중 오류가 발생했습니다.' });
+          return res.json({ messages: rows || [] });
+        });
+      });
+    });
+  } catch (error) {
+    res.status(500).json({ error: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 서버 시작 (모든 인터페이스에 바인딩)
 app.listen(PORT, () => {
   console.log(`밥친구 백엔드 서버가 포트 ${PORT}에서 실행 중입니다.`);
-  console.log(`API 엔드포인트: http://localhost:${PORT}/api`);
+  console.log(`API 엔드포인트(로컬): http://localhost:${PORT}/api`);
+  console.log(`API 엔드포인트(도메인): http://${HOST}:${PORT}/api`);
 });
 
 // 에러 핸들링
