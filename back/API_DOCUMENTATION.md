@@ -4,7 +4,7 @@
 밥친구 서비스의 백엔드 API입니다. 사용자 인증 및 관리 기능을 제공합니다.
 
 ## 기본 정보
-- **Base URL**: `http://localhost:3001/api`
+- **Base URL**: `http://babfriend.kro.kr:3001/api`
 - **Content-Type**: `application/json`
 - **인증 방식**: JWT Bearer Token
 
