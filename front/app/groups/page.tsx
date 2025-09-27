@@ -2,70 +2,15 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Separator } from "@/components/ui/separator"
-import { MapPin, Users, Clock, Utensils, MessageCircle, UserPlus, ArrowLeft } from "lucide-react"
+import { MapPin, Users, Clock, Utensils, Plus, Search } from "lucide-react"
 import Link from "next/link"
-import { useParams, useRouter } from "next/navigation"
+import { groupsStore, MealGroup } from "@/lib/groups-store"
 
-interface Member {
-  id: number
-  name: string
-  joinedAt: string
-}
-
-interface MealGroup {
-  id: number
-  menu: string
-  time: string
-  location: string
-  distance: string
-  currentMembers: number
-  maxMembers: number
-  tags: string[]
-  description: string
-  createdBy: string
-  createdAt: string
-  members: Member[]
-}
-
-export default function GroupDetailPage() {
-  const params = useParams()
-  const router = useRouter()
-  const [hasJoined, setHasJoined] = useState(false)
-
-  // Mock data - in real app, this would come from API
-  const group: MealGroup = {
-    id: Number.parseInt(params.id as string),
-    menu: "삼겹살",
-    time: "오늘 7:00 PM",
-    location: "강남역 2번 출구 앞",
-    distance: "0.5km",
-    currentMembers: 2,
-    maxMembers: 4,
-    tags: ["고기", "회식", "저녁"],
-    description: "퇴근 후 삼겹살 한 판 어떠세요? 맛있는 집 알고 있어서 같이 가실 분들 모집합니다!",
-    createdBy: "김철수",
-    createdAt: "2024-01-15",
-    members: [
-      { id: 1, name: "김철수", joinedAt: "2024-01-15" },
-      { id: 2, name: "이영희", joinedAt: "2024-01-16" },
-    ],
-  }
-
-  const handleJoinGroup = () => {
-    if (group.currentMembers < group.maxMembers) {
-      setHasJoined(true)
-      // Here you would typically make an API call to join the group
-    }
-  }
-
-  const handleLeaveGroup = () => {
-    setHasJoined(false)
-    // Here you would typically make an API call to leave the group
-  }
+export default function GroupsPage() {
+  // groups-store에서 그룹 데이터 가져오기
+  const groups = groupsStore.getAllGroups()
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
@@ -78,7 +23,7 @@ export default function GroupDetailPage() {
               <h1 className="text-2xl font-bold text-gray-900">밥친구</h1>
             </Link>
             <nav className="hidden md:flex items-center gap-6">
-              <Link href="/groups" className="text-gray-600 hover:text-orange-600 transition-colors">
+              <Link href="/groups" className="text-orange-600 font-medium transition-colors">
                 그룹 찾기
               </Link>
               <Link href="/my-groups" className="text-gray-600 hover:text-orange-600 transition-colors">
@@ -92,186 +37,76 @@ export default function GroupDetailPage() {
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        {/* Back Button */}
-        <Link href="/groups" className="inline-flex items-center gap-2 text-gray-600 hover:text-orange-600 mb-6">
-          <ArrowLeft className="h-4 w-4" />
-          그룹 목록으로 돌아가기
-        </Link>
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-3xl font-bold text-gray-900">모든 그룹</h2>
+          <Link href="/groups/create">
+            <Button className="bg-orange-600 hover:bg-orange-700">
+              <Plus className="h-4 w-4 mr-2" />
+              새 그룹 만들기
+            </Button>
+          </Link>
+        </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Group Info */}
-            <Card className="border-orange-100">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-2xl text-gray-900 mb-2">{group.menu}</CardTitle>
-                    <div className="flex items-center gap-4 text-gray-600">
+        {groups.length > 0 ? (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {groups.map((group) => (
+              <Card key={group.id} className="hover:shadow-lg transition-shadow border-orange-100">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-xl text-gray-900">{group.menu}</CardTitle>
+                    <Badge variant="secondary" className="bg-orange-100 text-orange-700">
+                      {group.currentMembers}/{group.maxMembers}명
+                    </Badge>
+                  </div>
+                  <CardDescription className="text-gray-600">
+                    <div className="flex items-center gap-4 mt-2">
                       <span className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
                         {group.time}
                       </span>
                       <span className="flex items-center gap-1">
                         <MapPin className="h-4 w-4" />
-                        {group.location}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Users className="h-4 w-4" />
-                        {group.currentMembers}/{group.maxMembers}명
+                        {group.location} ({group.distance})
                       </span>
                     </div>
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {group.tags.map((tag: string) => (
+                      <Badge key={tag} variant="outline" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
                   </div>
-                  <Badge variant="secondary" className="bg-orange-100 text-orange-700">
-                    {group.distance}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-700 mb-4">{group.description}</p>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {group.tags.map((tag) => (
-                    <Badge key={tag} variant="outline" className="text-xs">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-                <div className="text-sm text-gray-500">
-                  {group.createdBy}님이 {group.createdAt}에 만든 그룹
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Members */}
-            <Card className="border-orange-100">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  참여 멤버 ({group.currentMembers}/{group.maxMembers})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {group.members.map((member, index) => (
-                    <div key={member.id}>
-                      <div className="flex items-center gap-3">
-                        <Avatar>
-                          <AvatarFallback className="bg-orange-100 text-orange-700">{member.name[0]}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{member.name}</span>
-                            {index === 0 && (
-                              <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">
-                                그룹장
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="text-sm text-gray-500">{member.joinedAt}에 참여</div>
-                        </div>
-                      </div>
-                      {index < group.members.length - 1 && <Separator className="mt-3" />}
-                    </div>
-                  ))}
-
-                  {/* Empty slots */}
-                  {Array.from({ length: group.maxMembers - group.currentMembers }).map((_, index) => (
-                    <div key={`empty-${index}`}>
-                      <Separator />
-                      <div className="flex items-center gap-3 pt-3">
-                        <Avatar>
-                          <AvatarFallback className="bg-gray-100 text-gray-400">
-                            <UserPlus className="h-4 w-4" />
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="text-gray-400">빈 자리</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Join/Leave Button */}
-            <Card className="border-orange-100">
-              <CardContent className="pt-6">
-                {!hasJoined ? (
-                  <Button
-                    onClick={handleJoinGroup}
-                    className="w-full bg-orange-600 hover:bg-orange-700"
-                    disabled={group.currentMembers >= group.maxMembers}
-                  >
-                    {group.currentMembers >= group.maxMembers ? "인원 마감" : "그룹 참여하기"}
-                  </Button>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="text-center text-green-600 font-medium">참여 완료!</div>
-                    <Button onClick={handleLeaveGroup} variant="outline" className="w-full bg-transparent">
-                      그룹 나가기
+                  <div className="flex gap-2">
+                    <Link href={`/groups/${group.id}`} className="flex-1">
+                      <Button className="w-full bg-orange-600 hover:bg-orange-700">자세히 보기</Button>
+                    </Link>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => {
+                        const searchQuery = encodeURIComponent(group.location);
+                        window.open(`https://map.naver.com/v5/search/${searchQuery}`, '_blank');
+                      }}
+                    >
+                      <MapPin className="h-4 w-4" />
                     </Button>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Chat */}
-            <Card className="border-orange-100">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageCircle className="h-5 w-5" />
-                  그룹 채팅
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center text-gray-500 py-8">
-                  {hasJoined ? (
-                    <div>
-                      <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                      <p>그룹 채팅이 곧 시작됩니다</p>
-                    </div>
-                  ) : (
-                    <div>
-                      <p className="text-sm">그룹에 참여하면</p>
-                      <p className="text-sm">채팅을 이용할 수 있습니다</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Location Info */}
-            <Card className="border-orange-100">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5" />
-                  위치 정보
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="font-medium">{group.location}</div>
-                  <div className="text-sm text-gray-600">내 위치에서 {group.distance}</div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="w-full mt-3 bg-transparent"
-                    onClick={() => {
-                      // 네이버 지도에서 해당 위치 검색
-                      const searchQuery = encodeURIComponent(group.location);
-                      window.open(`https://map.naver.com/v5/search/${searchQuery}`, '_blank');
-                    }}
-                  >
-                    지도에서 보기
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-        </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-gray-500">현재 모집 중인 그룹이 없습니다.</p>
+            <Link href="/groups/create">
+              <Button className="mt-4 bg-orange-600 hover:bg-orange-700">새 그룹 만들기</Button>
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   )

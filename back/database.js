@@ -38,7 +38,7 @@ const createUsersTable = () => {
   });
 };
 
-// 그룹 테이블 생성 (향후 확장용)
+// 그룹 테이블 생성
 const createGroupsTable = () => {
   const sql = `
     CREATE TABLE IF NOT EXISTS groups (
@@ -53,6 +53,7 @@ const createGroupsTable = () => {
       description TEXT,
       status TEXT DEFAULT 'active',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (creator_id) REFERENCES users (id)
     )
   `;
@@ -66,10 +67,59 @@ const createGroupsTable = () => {
   });
 };
 
+// 그룹 멤버 테이블 생성
+const createGroupMembersTable = () => {
+  const sql = `
+    CREATE TABLE IF NOT EXISTS group_members (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      group_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      status TEXT DEFAULT 'active',
+      FOREIGN KEY (group_id) REFERENCES groups (id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+      UNIQUE(group_id, user_id)
+    )
+  `;
+  
+  db.run(sql, (err) => {
+    if (err) {
+      console.error('그룹 멤버 테이블 생성 오류:', err.message);
+    } else {
+      console.log('그룹 멤버 테이블이 생성되었습니다.');
+    }
+  });
+};
+
+// 그룹 메시지 테이블 생성
+const createGroupMessagesTable = () => {
+  const sql = `
+    CREATE TABLE IF NOT EXISTS group_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      group_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      message TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (group_id) REFERENCES groups (id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    )
+  `;
+
+  db.run(sql, (err) => {
+    if (err) {
+      console.error('그룹 메시지 테이블 생성 오류:', err.message);
+    } else {
+      console.log('그룹 메시지 테이블이 생성되었습니다.');
+    }
+  });
+};
+
 // 데이터베이스 초기화
 const initDatabase = () => {
   createUsersTable();
   createGroupsTable();
+  createGroupMembersTable();
+  createGroupMessagesTable();
 };
 
 module.exports = {

@@ -10,32 +10,7 @@ import { MapPin, Users, Clock, Utensils, MessageCircle, UserPlus, ArrowLeft } fr
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 import NaverMap from "@/components/naver-map"
-import { groupsStore } from "@/lib/groups-store"
-
-interface Member {
-  id: number
-  name: string
-  joinedAt: string
-}
-
-interface MealGroup {
-  id: number
-  menu: string
-  time: string
-  location: string
-  distance: string
-  currentMembers: number
-  maxMembers: number
-  tags: string[]
-  description: string
-  createdBy: string
-  createdAt: string
-  members: Member[]
-  lat: number
-  lng: number
-  mealType: string
-  priceRange: string
-}
+import { groupsStore, MealGroup, Member } from "@/lib/groups-store"
 
 export default function GroupDetailPage() {
   const params = useParams()
@@ -167,7 +142,7 @@ export default function GroupDetailPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {group.members.map((member, index) => (
+                  {(group.members || []).map((member, index) => (
                     <div key={member.id}>
                       <div className="flex items-center gap-3">
                         <Avatar>
@@ -185,7 +160,7 @@ export default function GroupDetailPage() {
                           <div className="text-sm text-gray-500">{member.joinedAt}에 참여</div>
                         </div>
                       </div>
-                      {index < group.members.length - 1 && <Separator className="mt-3" />}
+                      {index < (group.members || []).length - 1 && <Separator className="mt-3" />}
                     </div>
                   ))}
 
