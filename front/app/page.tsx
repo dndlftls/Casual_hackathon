@@ -7,17 +7,14 @@ import { Badge } from "@/components/ui/badge"
 import { MapPin, Users, Clock, Utensils, Plus, Search, Zap } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/context/AuthContext" // 1. useAuth 훅 import
+import { groupsStore } from "@/lib/groups-store"
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState<"create" | "join">("join")
   const { user } = useAuth(); // 2. useAuth 훅을 호출하여 user 정보 가져오기
 
-  // 임시 그룹 데이터 (향후 실제 데이터로 교체)
-  const featuredGroups = [
-    { id: 1, menu: "삼겹살", time: "오늘 7:00 PM", location: "강남역", distance: "0.5km", currentMembers: 2, maxMembers: 4, tags: ["고기", "회식"] },
-    { id: 2, menu: "치킨", time: "오늘 8:30 PM", location: "홍대입구", distance: "1.2km", currentMembers: 1, maxMembers: 3, tags: ["치킨", "맥주"] },
-    { id: 3, menu: "라면", time: "내일 12:00 PM", location: "신촌", distance: "2.1km", currentMembers: 3, maxMembers: 4, tags: ["점심", "간단"] },
-  ]
+  // groups-store에서 그룹 데이터 가져오기
+  const featuredGroups = groupsStore.getAllGroups()
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
@@ -143,7 +140,9 @@ export default function HomePage() {
                       </Badge>
                     ))}
                   </div>
-                  <Button className="w-full bg-orange-600 hover:bg-orange-700">참여하기</Button>
+                  <Link href={`/groups/${group.id}`}>
+                    <Button className="w-full bg-orange-600 hover:bg-orange-700">참여하기</Button>
+                  </Link>
                 </CardContent>
               </Card>
             ))}
@@ -167,15 +166,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Features */}
-      <section className="py-16 px-4">
-        <div className="container mx-auto">
-          <h3 className="text-3xl font-bold text-center mb-12 text-gray-900">왜 밥친구를 선택해야 할까요?</h3>
-          <div className="grid md:grid-cols-4 gap-8 max-w-5xl mx-auto">
-            {/* Features 내용 생략 */}
-          </div>
-        </div>
-      </section>
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-12 px-4">
