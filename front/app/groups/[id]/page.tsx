@@ -9,6 +9,8 @@ import { Separator } from "@/components/ui/separator"
 import { MapPin, Users, Clock, Utensils, MessageCircle, UserPlus, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
+import NaverMap from "@/components/naver-map"
+import { groupsStore } from "@/lib/groups-store"
 
 interface Member {
   id: number
@@ -29,6 +31,10 @@ interface MealGroup {
   createdBy: string
   createdAt: string
   members: Member[]
+  lat: number
+  lng: number
+  mealType: string
+  priceRange: string
 }
 
 export default function GroupDetailPage() {
@@ -36,9 +42,13 @@ export default function GroupDetailPage() {
   const router = useRouter()
   const [hasJoined, setHasJoined] = useState(false)
 
-  // Mock data - in real app, this would come from API
-  const group: MealGroup = {
-    id: Number.parseInt(params.id as string),
+  // 실제 그룹 데이터 가져오기
+  const groupId = Number.parseInt(params.id as string)
+  const groupData = groupsStore.getGroupById(groupId)
+  
+  // 그룹이 없으면 기본값 사용
+  const group: MealGroup = groupData || {
+    id: groupId,
     menu: "삼겹살",
     time: "오늘 7:00 PM",
     location: "강남역 2번 출구 앞",
@@ -53,6 +63,10 @@ export default function GroupDetailPage() {
       { id: 1, name: "김철수", joinedAt: "2024-01-15" },
       { id: 2, name: "이영희", joinedAt: "2024-01-16" },
     ],
+    lat: 37.498095,
+    lng: 127.02761,
+    mealType: "저녁",
+    priceRange: "2-3만원",
   }
 
   const handleJoinGroup = () => {
@@ -255,12 +269,22 @@ export default function GroupDetailPage() {
                 <div className="space-y-2">
                   <div className="font-medium">{group.location}</div>
                   <div className="text-sm text-gray-600">내 위치에서 {group.distance}</div>
-                  <Button variant="outline" size="sm" className="w-full mt-3 bg-transparent">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full mt-3 bg-transparent"
+                    onClick={() => {
+                      // 네이버 지도에서 해당 위치 검색
+                      const searchQuery = encodeURIComponent(group.location);
+                      window.open(`https://map.naver.com/v5/search/${searchQuery}`, '_blank');
+                    }}
+                  >
                     지도에서 보기
                   </Button>
                 </div>
               </CardContent>
             </Card>
+
           </div>
         </div>
       </div>
