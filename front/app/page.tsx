@@ -1,16 +1,15 @@
-"use client"
+"use client";
 
-import React, { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { MapPin, Users, Clock, Utensils, Plus, Search, Zap } from "lucide-react"
-import Link from "next/link"
-import { useAuth } from "@/context/AuthContext" // 1. useAuth 훅 import
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { MapPin, Users, Clock, Plus, Search, Zap } from "lucide-react";
+import Link from "next/link";
+// 홈페이지 자체에서는 더 이상 useAuth를 직접 호출할 필요가 없습니다. (헤더가 담당)
 
 export default function HomePage() {
-  const [activeTab, setActiveTab] = useState<"create" | "join">("join")
-  const { user } = useAuth(); // 2. useAuth 훅을 호출하여 user 정보 가져오기
+  const [activeTab, setActiveTab] = useState<"create" | "join">("join");
   const [featuredGroups, setFeaturedGroups] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -37,42 +36,9 @@ export default function HomePage() {
     fetchGroups()
   }, [])
 
+  // 기존 코드에서 <header>...</header> 부분만 완전히 삭제합니다.
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-orange-100 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Utensils className="h-8 w-8 text-orange-600" />
-              <h1 className="text-2xl font-bold text-gray-900">밥친구</h1>
-            </div>
-            <nav className="hidden md:flex items-center gap-6">
-              <Link href="/groups" className="text-gray-600 hover:text-orange-600 transition-colors">
-                그룹 찾기
-              </Link>
-              <Link href="/my-groups" className="text-gray-600 hover:text-orange-600 transition-colors">
-                내 그룹
-              </Link>
-              
-              {/* 3. 로그인 상태에 따라 UI를 변경하는 핵심 로직 */}
-              {user ? (
-                // 로그인 상태일 때
-                 <span className="font-semibold text-gray-800">{user.nickname}님</span>
-              ) : (
-                // 로그아웃 상태일 때
-                <Link href="/login">
-                  <Button variant="outline" size="sm">
-                    로그인
-                  </Button>
-                </Link>
-              )}
-
-            </nav>
-          </div>
-        </div>
-      </header>
-
       {/* Hero Section */}
       <section className="py-20 px-4">
         <div className="container mx-auto text-center">
@@ -202,13 +168,7 @@ export default function HomePage() {
         </div>
       </section>
 
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12 px-4">
-        <div className="container mx-auto text-center">
-          {/* Footer 내용 생략 */}
-        </div>
-      </footer>
+      {/* ... Featured Groups, Map, Features, Footer 등 ... */}
     </div>
-  )
+  );
 }
