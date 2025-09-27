@@ -1,19 +1,20 @@
-"use client"
+"use client";
 
-import React, { createContext, useState, useContext, ReactNode } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
+import axios from 'axios';
 
-// 1. 사용자 정보 타입을 정의합니다.
+const API_URL = "http://bobfriend.kro.kr:3001/api";
+
 interface User {
   id: number;
   email: string;
   nickname: string;
 }
 
-// 2. Context에 저장될 데이터 타입을 수정합니다.
 interface AuthContextType {
-  user: User | null; // 이제 user는 객체이거나 null입니다.
+  user: User | null;
   token: string | null;
-  login: (userData: User, token: string) => void;
+  login: (userData: User, tokenData: string) => void;
   logout: () => void;
 }
 
@@ -30,22 +31,65 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // 3. login 함수가 사용자 객체와 토큰을 받도록 수정합니다.
-  const login = (userData: User, tokenData: string) => {
+  const login = useCallback((userData: User, tokenData: string) => {
     setUser(userData);
     setToken(tokenData);
-    // 실제 앱에서는 토큰을 localStorage나 httpOnly 쿠키에 저장합니다.
-    localStorage.setItem('token', tokenData);
-  };
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('token', tokenData);
+    }
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setUser(null);
     setToken(null);
-    localStorage.removeItem('token');
-  };
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+    }
+  }, []);
+
+  useEffect(() => {
+    const checkUserStatus = async () => {
+      // 서버 렌더링을 피하기 위해 window 객체 확인
+      if (typeof window === 'undefined') {
+        setLoading(false);
+        return;
+      }
+
+      const storedToken = localStorage.getItem('token');
+      if (storedToken) {
+        // 이미 user 정보가 있으면, 불필요한 API 호출을 막습니다. (최적화)
+        if (user) {
+          setLoading(false);
+          return;
+        }
+
+        try {
+          const response = await axios.get(`${API_URL}/auth/verify`, {
+            headers: { Authorization: `Bearer ${storedToken}` }
+          });
+          if (response.data.valid) {
+            login(response.data.user, storedToken);
+          } else {
+            logout();
+          }
+        } catch (error) {
+          console.error("Token verification failed:", error);
+          logout();
+        }
+      }
+      setLoading(false);
+    };
+    
+    checkUserStatus();
+  }, [login, logout, user]); // user를 의존성 배열에 추가합니다.
 
   const value = { user, token, login, logout };
+
+  if (loading) {
+    return null; 
+  }
 
   return (
     <AuthContext.Provider value={value}>
