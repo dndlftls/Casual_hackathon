@@ -3,8 +3,6 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
-const API_URL = "http://bobfriend.kro.kr:3001/api";
-
 interface User {
   id: number;
   email: string;
@@ -66,7 +64,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
         try {
-          const response = await axios.get(`${API_URL}/auth/verify`, {
+          const response = await axios.get(`/api/auth/verify`, {
             headers: { Authorization: `Bearer ${storedToken}` }
           });
           if (response.data.valid) {

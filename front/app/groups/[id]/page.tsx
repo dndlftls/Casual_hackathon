@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
 import { Input } from "@/components/ui/input"
 import { MapPin, Users, Clock, Utensils, MessageCircle, UserPlus, ArrowLeft, Send } from "lucide-react"
+import LoginRequired from "@/components/auth/LoginRequired"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 import NaverMap from "@/components/naver-map"
@@ -25,6 +26,8 @@ export default function GroupDetailPage() {
   const params = useParams()
   const router = useRouter()
   const [hasJoined, setHasJoined] = useState(false)
+  const [token, setToken] = useState<string | null>(null)
+  const [authChecked, setAuthChecked] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [newMessage, setNewMessage] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -58,15 +61,36 @@ export default function GroupDetailPage() {
     fetchGroup()
   }, [groupId])
 
+  // 토큰 로드 및 참여 상태(생성자/멤버) 판정
+  useEffect(() => {
+    const t = typeof window !== 'undefined' ? (localStorage.getItem('token') || localStorage.getItem('babchingu_token')) : null
+    setToken(t)
+    const verifyAndSet = async () => {
+      try {
+        if (!t || !group) return
+        const v = await fetch('/api/auth/verify', { headers: { 'Authorization': `Bearer ${t}` } })
+        if (!v.ok) { setAuthChecked(true); return }
+        const vjson = await v.json()
+        const userId = vjson.user?.id
+        const isCreator = userId && group && userId === group.creator_id
+        const isMember = userId && group && Array.isArray(group.members) && group.members.some((m:any) => m.id === userId)
+        setHasJoined(Boolean(isCreator || isMember))
+      } finally {
+        setAuthChecked(true)
+      }
+    }
+    verifyAndSet()
+  }, [group, groupId])
+
   // 채팅 메시지 가져오기
   const fetchMessages = async () => {
-    if (!hasJoined) return
+    if (!hasJoined || !token) return
     
     try {
       setIsLoading(true)
       const response = await fetch(`/api/groups/${groupId}/messages?limit=50&offset=0`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('babchingu_token') || ''}`
+          'Authorization': `Bearer ${token}`
         }
       })
       
@@ -83,14 +107,14 @@ export default function GroupDetailPage() {
 
   // 메시지 전송
   const sendMessage = async () => {
-    if (!newMessage.trim() || !hasJoined) return
+    if (!newMessage.trim() || !hasJoined || !token) return
 
     try {
       const response = await fetch(`/api/groups/${groupId}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('babchingu_token') || ''}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ message: newMessage })
       })
@@ -119,17 +143,32 @@ export default function GroupDetailPage() {
     }
   }, [hasJoined, groupId])
 
-  const handleJoinGroup = () => {
-    if (group && group.current_members < group.max_members) {
-      setHasJoined(true)
-      // Here you would typically make an API call to join the group
-    }
+  const handleJoinGroup = async () => {
+    if (!token) { router.push('/login'); return }
+    if (!group || group.current_members >= group.max_members) return
+    try {
+      const res = await fetch(`/api/groups/${groupId}/join`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } })
+      if (res.ok) {
+        setHasJoined(true)
+        // 그룹 상세/멤버/카운트 갱신
+        const g = await fetch(`/api/groups/${groupId}`)
+        if (g.ok) setGroup(await g.json().then(j=>j.group))
+        fetchMessages()
+      }
+    } catch (e) {}
   }
 
-  const handleLeaveGroup = () => {
-    setHasJoined(false)
-    setMessages([])
-    // Here you would typically make an API call to leave the group
+  const handleLeaveGroup = async () => {
+    if (!token) { router.push('/login'); return }
+    try {
+      const res = await fetch(`/api/groups/${groupId}/leave`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } })
+      if (res.ok) {
+        setHasJoined(false)
+        setMessages([])
+        const g = await fetch(`/api/groups/${groupId}`)
+        if (g.ok) setGroup(await g.json().then(j=>j.group))
+      }
+    } catch (e) {}
   }
 
   // 로딩 중이면 로딩 표시
@@ -291,7 +330,11 @@ export default function GroupDetailPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {hasJoined ? (
+                {!authChecked ? (
+                  <div className="text-center text-gray-500 py-8">확인 중...</div>
+                ) : !token ? (
+                  <LoginRequired />
+                ) : hasJoined ? (
                   <div className="space-y-4">
                     {/* 메시지 목록 */}
                     <div className="h-64 overflow-y-auto border rounded-lg p-3 bg-gray-50">
